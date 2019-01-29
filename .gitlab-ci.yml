@@ -1,0 +1,17 @@
+image: docker:dind
+
+before_script:
+  - export REGISTRO_URL=$CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_TAG
+  - echo $REGISTRO_URL
+    
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - docker build -t $REGISTRO_URL .
+    - docker push $REGISTRO_URL
+    - docker rmi $REGISTRO_URL
+  only:
+    - tags@devops/node

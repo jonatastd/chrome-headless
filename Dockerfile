@@ -38,6 +38,7 @@ yarn=1.6.0-1 \
 
 # Find your desired version here: https://deb.nodesource.com/node_10.x/pool/main/n/nodejs/
 # Ubuntu 16.04.3 LTS (Xenial Xerus) (https://wiki.ubuntu.com/Releases)
-RUN curl https://deb.nodesource.com/node_8.x/pool/main/n/nodejs/nodejs-dbg_8.0.0-1nodesource1~trusty1_amd64.deb > node.deb \
-&& dpkg -i node.deb \
-&& rm node.deb
+RUN apt-get update -yq \
+    && apt-get install gnupg -yq \
+    && curl -sL https://deb.nodesource.com/setup_8.x | bash \
+    && apt-get install nodejs -yq

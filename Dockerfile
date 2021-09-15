@@ -1,44 +1,48 @@
-FROM ubuntu:latest
+FROM node:10-alpine
 
-# Install deps
-RUN apt-get update && apt-get install -y \
-apt-transport-https \
-ca-certificates \
-curl \
-gnupg \
-git \
-python-pip \
-python2.7 \
-python2.7-dev \
-groff-base \
-build-essential \
---no-install-recommends
+ARG BUILD_DATE
+ARG VCS_REF
 
-# Install aws cli
-RUN pip install --upgrade pip setuptools
-RUN pip install --upgrade awscli
+LABEL org.label-schema.build-date=$BUILD_DATE \
+    org.label-schema.description="Chrome running in headless mode in a tiny Alpine image" \
+    org.label-schema.name="alpine-chrome" \
+    org.label-schema.schema-version="1.0.0-rc1" \
+    org.label-schema.usage="https://github.com/Zenika/alpine-chrome/blob/master/README.md" \
+    org.label-schema.vcs-url="https://github.com/Zenika/alpine-chrome" \
+    org.label-schema.vcs-ref=$VCS_REF \
+    org.label-schema.vendor="Zenika" \
+    org.label-schema.version="latest"
 
-# Get Chrome sources
-RUN curl -sSL https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-&& echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+# Installs latest Chromium package.
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories \
+    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+    && echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    && echo "http://dl-cdn.alpinelinux.org/alpine/v3.12/main" >> /etc/apk/repositories \
+    && apk upgrade -U -a \
+    && apk add \
+    libstdc++ \
+    chromium \
+    curl \
+    harfbuzz \
+    nss \
+    freetype \
+    ttf-freefont \
+    font-noto-emoji \
+    wqy-zenhei \
+    && rm -rf /var/cache/* \
+    && mkdir /var/cache/apk
 
-# Install Chrome
-RUN apt-get update && apt-get install -y \
-google-chrome-stable \
---no-install-recommends
+COPY local.conf /etc/fonts/local.conf
 
-# Get yarn sources
-RUN curl -sSL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-&& echo "deb [arch=amd64] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list
+# Add Chrome as a user
+RUN mkdir -p /usr/src/app \
+    && adduser -D chrome \
+    && chown -R chrome:chrome /usr/src/app
+# Run Chrome as non-privileged
+USER chrome
+WORKDIR /usr/src/app
 
-# Install yarn pinned version
-RUN apt-get update && apt-get install -y \
-yarn=1.6.0-1 \
---no-install-recommends
+ENV CHROME_BIN=/usr/bin/chromium-browser \
+    CHROME_PATH=/usr/lib/chromium/
 
-# Find your desired version here: https://deb.nodesource.com/node_10.x/pool/main/n/nodejs/
-# Ubuntu 16.04.3 LTS (Xenial Xerus) (https://wiki.ubuntu.com/Releases)
-RUN apt-get update -yq \
-    && apt-get install gnupg -yq \
-    && curl -sL https://deb.nodesource.com/setup_8.x | bash \
-    && apt-get install nodejs -yq
+CMD ["/bin/sh"]
